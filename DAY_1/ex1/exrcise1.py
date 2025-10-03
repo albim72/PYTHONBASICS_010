@@ -1,10 +1,17 @@
-# Lista tytułów z duplikatami
+
+# Task: Python Collections — Library System
+
+# You will work with Python’s main collections: list, tuple, set, dictionary, frozenset.
+# Your goal is to build a small “library system” step by step.
+
+
+
+
 raw_titles = [
     "Dune", "Foundation", "Dune", "Neuromancer",
     "Snow Crash", "Foundation", "Hyperion", "Dune"
 ]
 
-# Lista krotek (ISBN, autor)
 isbn_author_pairs = [
     ("9780441013593", "Frank Herbert"),
     ("9780553293357", "Isaac Asimov"),
@@ -12,5 +19,4 @@ isbn_author_pairs = [
     ("9780553380958", "Dan Simmons")
 ]
 
-# Zbiór książek wypożyczonych
 loaned_titles = {"Neuromancer", "Hyperion"}
