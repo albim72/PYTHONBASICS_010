@@ -36,3 +36,28 @@ products = [
 price_over_100 = make_threshold_filter(100,lambda item:item["price"])
 premium = list(filter(price_over_100,products))
 print(f"premium products: {premium}")
+
+
+#full decorator
+def log_calls(func):
+    """
+    Decorator: print the function name and args each call...
+    :param func:
+    :return:
+    """
+    def wrapper(*args,**kwargs):
+        print(f"Calling {func.__name__} with {args} and {kwargs}")
+        return func(*args,**kwargs)
+    return wrapper
+
+@log_calls
+def add(a,b):
+    return a+b
+
+print(add(1,2))
+print(add(1.675,4.53))
+print(add("hello","world"))
+print(add(True,False))
+print(add([1,2,3],[4,5,6]))
+print(add((1,2,3),(4,5,6)))
+# print(add({1,2,3},{2,5,3}))
