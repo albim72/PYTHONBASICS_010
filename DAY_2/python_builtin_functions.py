@@ -33,3 +33,8 @@ top_sorted = sorted(passed,
 print(f"top_sorted: {top_sorted}")
 
 
+#function reduce(function,iterable,initializer)
+class_avg = reduce(lambda acc, s: acc + s[1],
+                   name_and_avg, 0.0)/len(name_and_avg)
+
+print(f"class_avg: {class_avg:.2f}")
