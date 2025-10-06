@@ -38,3 +38,11 @@ class_avg = reduce(lambda acc, s: acc + s[1],
                    name_and_avg, 0.0)/len(name_and_avg)
 
 print(f"class_avg: {class_avg:.2f}")
+
+#any/all functions quick checks
+#any(...) stops on first True, all(...) stops on first False
+any_below_60  = any(map(lambda pair: pair[1] < 60, name_and_avg))
+all_above_70  = all(map(lambda pair: pair[1] > 70, name_and_avg))
+
+print(f"any_below_60: {any_below_60}")
+print(f"all_above_70: {all_above_70}")
