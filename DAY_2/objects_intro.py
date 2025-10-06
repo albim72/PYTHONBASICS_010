@@ -40,3 +40,37 @@ print(r1.area())
 print(r1.color())
 r1.change_color("blue")
 print(r1.color())
+
+print("_"*60)
+
+class Animal:
+    def __init__(self, name):
+        self.name = name
+
+    def sound(self):
+        return "?????"
+
+class Dog(Animal):
+    def __init__(self, name, breed):
+        super().__init__(name)
+        self.breed = breed
+
+    def sound(self):
+        return "Woof!"
+
+class Cat(Animal):
+    def __init__(self, name, color):
+        super().__init__(name)
+        self.color = color
+
+    def sound(self):
+        return "Meow!"
+
+dog1 = Dog("Ludvik","English Bulldog")
+print(f"the dog sound is {dog1.sound()}")
+
+cat = Cat("Ator","Black")
+print(f"the cat sound is {cat.sound()}")
+
+dog2 = Dog("Rocky","Belgian Sheepdog")
+print(f"the dog sound is {dog2.sound()}")
