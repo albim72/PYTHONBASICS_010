@@ -22,3 +22,14 @@ print(f"name_and_avg: {name_and_avg}")
 
 passed = list(filter(lambda t: t[1] >= 75, name_and_avg))
 print(f"passed: {passed}")
+
+#function sorted with key: sort passed students by average
+#sorted will call key(...) to extract the sort from each pair
+
+top_sorted = sorted(passed,
+                    key=lambda pair: pair[1],
+                    reverse=True)
+
+print(f"top_sorted: {top_sorted}")
+
+
