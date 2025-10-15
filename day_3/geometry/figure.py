@@ -1,15 +1,17 @@
 from abc import ABC, abstractmethod
 
 class Figure(ABC):
-    def __init__(self,a,b):
+    def __init__(self, a, b=None):
         self.a = a
-        self.b = b
+        if b:
+            self.b = b
         self.message()
-        
+
     @abstractmethod
     def calculate_area(self):
-        """Each figure has its own area calculation method."""
+        """Each subclass must implement its own area calculation."""
         pass
-    
+
+
     def message(self):
         print("This is new object of Figure class")
