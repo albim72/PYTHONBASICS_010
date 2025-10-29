@@ -41,3 +41,14 @@ team.add_member('Jane')
 team.add_member('Jeremy')
 
 print(team)
+
+print("_"*60)
+
+e1 =Employee('Emily', 3400)
+e2 =Employee('Emily', 3400)
+
+print(e1==e2)
+print(e1 is e2)
+
+print(id(e1))
+print(id(e2))
