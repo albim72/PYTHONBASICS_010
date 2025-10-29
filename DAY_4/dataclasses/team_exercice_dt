@@ -1,0 +1,252 @@
+"""
+team_exercise_solution.py
+
+Reference solution for the "Team Exercise — Dataclasses in Python".
+Domain chosen: Runner's Log (tracking training sessions).
+This script demonstrates advanced dataclass features and a clean separation of data and behavior.
+
+What you will see in this file (with step-by-step comments):
+1) A frozen, ordered dataclass `RunSession` with validation in __post_init__ and a computed field.
+2) A mutable dataclass `Runner` that aggregates sessions and provides summary methods.
+3) A manager class `RunLog` that exports a readable report to a text file.
+4) A minimal demo inside __main__ showing typical usage.
+
+You can use this solution as a template for other domains (e.g., library, inventory).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import List, Iterable
+import math
+import statistics
+import datetime
+import os
+
+
+# ============================================================
+# 1) DATA: A single training entry using an advanced dataclass
+# ============================================================
+
+@dataclass(order=True, frozen=True)
+class RunSession:
+    """
+    Represents a single running session.
+    Advanced dataclass features:
+      - frozen=True:  makes each session immutable (safer to share & compare)
+      - order=True:   enables sorting, here by `sort_index` which we compute
+      - __post_init__: validation + computed fields
+      - init=False:   used for hidden, computed field (`sort_index`)
+
+    Fields:
+      date_iso:      string in ISO format 'YYYY-MM-DD', easier to parse/sort
+      distance_km:   total distance run (float, must be > 0)
+      duration_min:  total duration in minutes (float, must be > 0)
+      sort_index:    negative pace, for natural "best-first" sorting
+
+    Why sort by negative pace?
+      - Lower pace (min/km) is better.
+      - Using a negative value means default ascending sort places
+        the "best" (lowest pace) sessions first.
+    """
+    # Hidden computed field used for ordering (NOT passed to constructor)
+    sort_index: float = field(init=False, repr=False)
+
+    # Public fields passed to constructor
+    date_iso: str
+    distance_km: float
+    duration_min: float
+
+    def __post_init__(self) -> None:
+        """
+        Runs right after the generated __init__.
+        We validate input and compute a derived attribute.
+        Since the dataclass is frozen, we must use object.__setattr__ to assign.
+        """
+        # --- 1) Validate date in a friendly and reliable way ---
+        try:
+            # Raises ValueError if date is invalid
+            datetime.date.fromisoformat(self.date_iso)
+        except ValueError as e:
+            raise ValueError(f"Invalid ISO date '{self.date_iso}': {e}")
+
+        # --- 2) Validate numeric fields ---
+        if self.distance_km <= 0:
+            raise ValueError("distance_km must be > 0")
+        if self.duration_min <= 0:
+            raise ValueError("duration_min must be > 0")
+
+        # --- 3) Compute a stable sort index (negative pace) ---
+        pace = self.duration_min / self.distance_km  # min per km
+        object.__setattr__(self, "sort_index", -pace)
+
+    # Convenience properties for readability when printing/exporting
+    @property
+    def pace_min_per_km(self) -> float:
+        """Average pace in minutes per kilometer."""
+        return self.duration_min / self.distance_km
+
+    @property
+    def date(self) -> datetime.date:
+        """Return the session date as a datetime.date object (handy for math)."""
+        return datetime.date.fromisoformat(self.date_iso)
+
+
+# ============================================================
+# 2) DATA + BEHAVIOR: Runner profile that aggregates sessions
+# ============================================================
+
+@dataclass
+class Runner:
+    """
+    Represents a runner with a name and a collection of sessions.
+    This class is MUTABLE by design (we append sessions over time).
+
+    Key dataclass features here:
+      - field(default_factory=list) to avoid shared mutable defaults
+      - regular methods for aggregation and basic statistics
+    """
+    name: str
+    sessions: List[RunSession] = field(default_factory=list)
+
+    # --- Mutation: adding sessions ---
+    def add_session(self, session: RunSession) -> None:
+        """
+        Append a validated RunSession to this runner.
+        (RunSession itself is validated/immutable, so this stays robust.)
+        """
+        self.sessions.append(session)
+
+    # --- Aggregations ---
+    def total_distance(self) -> float:
+        """Sum of all session distances in kilometers."""
+        return sum(s.distance_km for s in self.sessions)
+
+    def total_duration(self) -> float:
+        """Sum of all session durations in minutes."""
+        return sum(s.duration_min for s in self.sessions)
+
+    def average_pace(self) -> float:
+        """
+        Weighted average pace (min/km) across sessions.
+        We weight by distance so long runs influence the average proportionally.
+        """
+        total_dist = self.total_distance()
+        if total_dist == 0:
+            return math.nan
+        return self.total_duration() / total_dist
+
+    def best_sessions(self, n: int = 3) -> List[RunSession]:
+        """Return the top-n sessions by (best) pace using dataclass ordering."""
+        return sorted(self.sessions)[:n]
+
+    def last_n_days(self, days: int) -> List[RunSession]:
+        """Return sessions within the last `days` days (relative to today)."""
+        today = datetime.date.today()
+        cutoff = today - datetime.timedelta(days=days)
+        return [s for s in self.sessions if s.date >= cutoff]
+
+    def pace_stats(self) -> dict:
+        """
+        Return basic statistics of paces across sessions.
+        (mean/median/min/max). If no sessions, values are NaN.
+        """
+        if not self.sessions:
+            return {"mean": math.nan, "median": math.nan, "min": math.nan, "max": math.nan}
+        paces = [s.pace_min_per_km for s in self.sessions]
+        return {
+            "mean": statistics.mean(paces),
+            "median": statistics.median(paces),
+            "min": min(paces),
+            "max": max(paces),
+        }
+
+
+# ============================================================
+# 3) MANAGER: A simple log that can export a text report
+# ============================================================
+
+class RunLog:
+    """
+    Manager/utility for exporting a runner's sessions to a human-readable file.
+    This is a plain class on purpose (to show mix-and-match with dataclasses).
+    """
+
+    @staticmethod
+    def export_txt(runner: Runner, path: str) -> None:
+        """
+        Export the runner's sessions to a text file.
+        The report includes: per-session lines, total distance/duration,
+        and basic pace statistics.
+        """
+        lines: List[str] = []
+
+        # --- Header ---
+        lines.append(f"Runner: {runner.name}\n")
+        lines.append("Date        | Distance | Duration | Pace (min/km)\n")
+        lines.append("------------+----------+----------+--------------\n")
+
+        # --- Per-session lines ---
+        for s in sorted(runner.sessions):  # uses order=True on RunSession (best pace first)
+            lines.append(
+                f"{s.date_iso} | {s.distance_km:7.1f} km | {s.duration_min:7.1f} min | {s.pace_min_per_km:10.2f}\n"
+            )
+
+        # --- Summary ---
+        lines.append("\nSummary:\n")
+        total_km = runner.total_distance()
+        total_min = runner.total_duration()
+        lines.append(f"  Total distance:  {total_km:.1f} km\n")
+        lines.append(f"  Total duration:  {total_min:.1f} min\n")
+
+        avg_pace = runner.average_pace()
+        stats = runner.pace_stats()
+        lines.append(f"  Average pace:    {avg_pace:.2f} min/km\n")
+        lines.append(
+            f"  Pace stats  — mean: {stats['mean']:.2f}, "
+            f"median: {stats['median']:.2f}, min: {stats['min']:.2f}, max: {stats['max']:.2f}\n"
+        )
+
+        # --- Write to disk (UTF-8) ---
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+
+
+# ============================================================
+# 4) Minimal demo
+# ============================================================
+
+def _demo_runner() -> Runner:
+    """
+    Create a Runner with a few example sessions.
+    This demonstrates object construction, validation, ordering, and export.
+    """
+    r = Runner("Marcin")
+    r.add_session(RunSession("2025-08-11", 10, 47))
+    r.add_session(RunSession("2025-08-12", 12, 58))
+    r.add_session(RunSession("2025-08-17", 5, 24))
+    r.add_session(RunSession("2025-08-19", 36, 233))
+    return r
+
+
+def main() -> None:
+    # --- Build demo runner ---
+    runner = _demo_runner()
+
+    # --- Show quick console output ---
+    print("Runner:", runner.name)
+    print("Total distance (km):", f"{runner.total_distance():.1f}")
+    print("Average pace (min/km):", f"{runner.average_pace():.2f}")
+    print("Best sessions by pace:")
+    for s in runner.best_sessions(3):
+        print("  ", s.date_iso, f"{s.distance_km:.1f} km", f"{s.pace_min_per_km:.2f} min/km")
+
+    # --- Export a nice text report ---
+    out_path = "out/runs_report.txt"
+    RunLog.export_txt(runner, out_path)
+    print(f"\nReport exported to: {out_path}")
+
+
+if __name__ == "__main__":
+    main()
