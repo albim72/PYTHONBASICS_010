@@ -1,0 +1,22 @@
+from dataclasses import dataclass, field
+
+@dataclass
+class Runner:
+    name: str
+    distance: float = 0.0
+    trainings: list[float] = field(default_factory=list)
+
+    def add_training(self, km: float) -> None:
+        self.trainings.append(km)
+        self.distance += km #self.distance = self.distance + km
+
+r = Runner("Martin")
+print(r)
+
+r.add_training(10.5)
+r.add_training(5.5)
+r.add_training(27.4)
+
+print(r.distance)
+print(r.trainings)
+print(r)
