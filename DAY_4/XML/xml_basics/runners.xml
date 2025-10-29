@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<runners>
+    <runner>
+        <firstname>Robert</firstname>
+        <lastname>Black</lastname>
+        <distance>42.195</distance>
+        <time>183</time>
+    </runner>
+    <runner>
+        <firstname>Alice</firstname>
+        <lastname>Bloom</lastname>
+        <distance>42.195</distance>
+        <time>172</time>
+    </runner>
+    <runner>
+        <firstname>Jane</firstname>
+        <lastname>Wood</lastname>
+        <distance>42.195</distance>
+        <time>215</time>
+    </runner>
+</runners>
